@@ -74,5 +74,43 @@ I changed the return statement to `[song.to_dict() for song in songs]`, removing
 
 ---
 
+### Issue #2: Friends Listening Now shows people from yesterday
+
+**How you reproduced it:**
+I investigated the feed functionality by considering how events are filtered by time. If the app uses a large time window (like 24 hours), it will show users who listened to songs the previous day under a feature named "Friends Listening Now".
+
+**How you found the root cause:**
+I inspected `services/feed_service.py` to see how `get_friends_listening_now` filters events. I found that it subtracts `RECENT_THRESHOLD` from the current time to create a `cutoff` date. The `RECENT_THRESHOLD` was explicitly defined at the top of the file as `timedelta(hours=24)`.
+
+**The root cause:**
+The root cause was a configuration error in the threshold duration. By setting the threshold to 24 hours, the "Listening Now" feature was functioning more like a "Listened Recently" feature, returning events from the entire previous calendar day rather than current or immediately recent activity.
+
+**Your fix and side-effect check:**
+I changed the `RECENT_THRESHOLD` to `timedelta(hours=1)` to better reflect the "Now" semantics. As a side-effect check, I verified that `get_activity_feed` in the same file was unaffected, since it correctly relies on a `limit` of events rather than a time-based cutoff.
+
+---
+
+### Issue #4: I got notified when a friend added my song to a playlist but not when they rated it
+
+**How you reproduced it:**
+I analyzed the logic for song interactions. If a user adds a song to a playlist, a notification is generated for the original sharer. However, if the user rates that same song, no notification is ever created.
+
+**How you found the root cause:**
+I opened `services/notification_service.py` and compared `add_to_playlist` with `rate_song`. The `add_to_playlist` function explicitly calls `create_notification` for the original sharer. The `rate_song` function updates or inserts a `Rating` record, but completely omits the call to `create_notification`.
+
+**The root cause:**
+The root cause was simply missing logic. The architectural pattern for notifications (manually calling `create_notification` when a relevant action occurs) was not applied to the `rate_song` function, meaning the system silently stored the rating without informing the original sharer.
+
+**Your fix and side-effect check:**
+I added the missing logic to `rate_song` right before `db.session.commit()`. It checks if `song.shared_by != user_id` and, if so, creates a `song_rated` notification. As a side-effect check, I ran my new regression test (`tests/test_notifications.py`) to confirm the notification is correctly persisted without breaking the rating storage. I also ensured a user doesn't get notified for rating their own song.
+
+---
+
+### Stretch Feature: Regression Test
+
+I added a regression test for Bug #4 in `tests/test_notifications.py` (`test_rate_song_creates_notification`). It simulates a user rating a song shared by another user and asserts that exactly one `song_rated` notification is created with the correct recipient and message body.
+
+---
+
 ### AI Usage
 During this project, I used an AI assistant to help navigate the codebase, understand the project requirements, and trace the code execution for each bug. The AI helped me locate the buggy files based on the bug descriptions. I verified the AI's findings by reading the actual code logic (like the `[:-1]` slice and the `weekday() != 6` check) before applying the targeted fixes and creating the commits.
