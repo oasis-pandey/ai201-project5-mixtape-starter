@@ -1,5 +1,8 @@
 # Mixtape Bug Hunt Submission
 
+## AI Usage
+During this project, I used an AI assistant to help navigate the codebase, understand the project requirements, and trace the code execution for each bug. The AI helped me locate the buggy files based on the bug descriptions (e.g. tracing the feed endpoint to `services/feed_service.py` and comparing `add_to_playlist` with `rate_song`). I verified the AI's findings by reading the actual code logic (like the `[:-1]` slice and the `weekday() != 6` check) before applying the targeted fixes and creating the commits. The AI's explanations were very useful, but I had to manually determine the correct fix for things like the Sunday boundary condition, where the AI initially just pointed out the condition existed.
+
 ## Part 1: Codebase Map
 
 ### Main Files and Their Roles
@@ -110,7 +113,3 @@ I added the missing logic to `rate_song` right before `db.session.commit()`. It 
 
 I added a regression test for Bug #4 in `tests/test_notifications.py` (`test_rate_song_creates_notification`). It simulates a user rating a song shared by another user and asserts that exactly one `song_rated` notification is created with the correct recipient and message body.
 
----
-
-### AI Usage
-During this project, I used an AI assistant to help navigate the codebase, understand the project requirements, and trace the code execution for each bug. The AI helped me locate the buggy files based on the bug descriptions. I verified the AI's findings by reading the actual code logic (like the `[:-1]` slice and the `weekday() != 6` check) before applying the targeted fixes and creating the commits.
