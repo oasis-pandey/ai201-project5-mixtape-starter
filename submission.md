@@ -113,3 +113,5 @@ I added the missing logic to `rate_song` right before `db.session.commit()`. It 
 
 I added a regression test for Bug #4 in `tests/test_notifications.py` (`test_rate_song_creates_notification`). It simulates a user rating a song shared by another user and asserts that exactly one `song_rated` notification is created with the correct recipient and message body.
 
+### GitHub comit log screenshot:
+![alt text](image.png)
