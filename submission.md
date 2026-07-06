@@ -1,7 +1,13 @@
 # Mixtape Bug Hunt Submission
 
 ## AI Usage
-During this project, I used an AI assistant to help navigate the codebase, understand the project requirements, and trace the code execution for each bug. The AI helped me locate the buggy files based on the bug descriptions (e.g. tracing the feed endpoint to `services/feed_service.py` and comparing `add_to_playlist` with `rate_song`). I verified the AI's findings by reading the actual code logic (like the `[:-1]` slice and the `weekday() != 6` check) before applying the targeted fixes and creating the commits. The AI's explanations were very useful, but I had to manually determine the correct fix for things like the Sunday boundary condition, where the AI initially just pointed out the condition existed.
+I used an AI assistant during codebase navigation and debugging. Two specific examples:
+
+**1. Comparing the two notification code paths (Issue #4).** I gave the AI the contents of `services/notification_service.py` and asked it to explain the structural difference between `add_to_playlist` and `rate_song`, since one notified the sharer and the other didn't. It pointed out that `add_to_playlist` ended with a `create_notification(...)` call guarded by `if song.shared_by != added_by_user_id`, while `rate_song` stored the `Rating` and committed without any equivalent call. I verified this myself by reading both functions top to bottom, and confirmed the notification pattern was manual (not triggered by any model hook), which told me the fix was to add the same guarded `create_notification` call rather than to change the model.
+
+**2. The Sunday streak condition (Issue #1).** After I narrowed the streak bug to the `elif days_since_last == 1 and today.weekday() != 6:` line, I asked the AI what `datetime.weekday()` returns and how it differs from `isoweekday()`. It confirmed `weekday()` returns 6 for Sunday, which explained why the streak fell through to the reset branch specifically on Sundays. Here the AI's output was incomplete: it explained *that* the condition singled out Sunday but did not tell me the correct behavior. I had to reason through the streak rules myself and decide the right fix was to remove the `weekday()` clause entirely (there is no legitimate reason to reset on Sundays), rather than switch to `isoweekday()` or add another special case.
+
+In general the AI was reliable for explaining code I had already located, but I did not trust it to diagnose a bug before I had read the relevant function — in every case I confirmed its explanation against the actual code before committing a fix.
 
 ## Part 1: Codebase Map
 
